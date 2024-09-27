@@ -2,90 +2,108 @@ import time
 import math
 import random
 
-class Point:
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
 
-def cross_product(A, B, C):
-    return (B.x - A.x) * (C.y - A.y) - (B.y - A.y) * (C.x - A.x)
+# Class representing a point in 2D space
+class Coordinate:
+    def __init__(self, x_val, y_val):
+        self.x_val = x_val
+        self.y_val = y_val
 
-def merge_hulls(left_hull, right_hull):
-    nL = len(left_hull)
-    nR = len(right_hull)
-    left_idx = nL - 1
-    right_idx = 0
 
-    done = False
-    while not done:
-        done = True
-        while cross_product(left_hull[left_idx], right_hull[right_idx], right_hull[(right_idx + 1) % nR]) < 0:
-            right_idx = (right_idx + 1) % nR
-        while cross_product(right_hull[right_idx], left_hull[left_idx], left_hull[(left_idx - 1 + nL) % nL]) > 0:
-            left_idx = (left_idx - 1 + nL) % nL
-            done = False
+# Function to compute the cross product of vectors
+def compute_cross_product(P1, P2, P3):
+    return (P2.x_val - P1.x_val) * (P3.y_val - P1.y_val) - (P2.y_val - P1.y_val) * (P3.x_val - P1.x_val)
 
-    upper_left = left_idx
-    upper_right = right_idx
 
-    done = False
-    left_idx = nL - 1
-    right_idx = 0
-    while not done:
-        done = True
-        while cross_product(left_hull[left_idx], right_hull[right_idx], right_hull[(right_idx - 1 + nR) % nR]) > 0:
-            right_idx = (right_idx - 1 + nR) % nR
-        while cross_product(right_hull[right_idx], left_hull[left_idx], left_hull[(left_idx + 1) % nL]) < 0:
-            left_idx = (left_idx + 1) % nL
-            done = False
-    lower_left = left_idx
-    lower_right = right_idx
-    merged_hull = []
-    idx = upper_left
-    while idx != lower_left:
-        merged_hull.append(left_hull[idx])
-        idx = (idx + 1) % nL
-    merged_hull.append(left_hull[lower_left])
-    idx = lower_right
-    while idx != upper_right:
-        merged_hull.append(right_hull[idx])
-        idx = (idx + 1) % nR
-    merged_hull.append(right_hull[upper_right])
-    return merged_hull
+# Function to merge two convex hulls
+def combine_hulls(left_part, right_part):
+    sizeL = len(left_part)
+    sizeR = len(right_part)
 
-def convex_hull_rec(points, left, right):
-    if right - left + 1 <= 2:
-        return points[left:right + 1]
+    idxL = sizeL - 1
+    idxR = 0
 
-    mid = (left + right) // 2
-    left_hull = convex_hull_rec(points, left, mid)
-    right_hull = convex_hull_rec(points, mid + 1, right)
+    merging_done = False
+    while not merging_done:
+        merging_done = True
+        while compute_cross_product(left_part[idxL], right_part[idxR], right_part[(idxR + 1) % sizeR]) < 0:
+            idxR = (idxR + 1) % sizeR
+        while compute_cross_product(right_part[idxR], left_part[idxL], left_part[(idxL - 1 + sizeL) % sizeL]) > 0:
+            idxL = (idxL - 1 + sizeL) % sizeL
+            merging_done = False
 
-    return merge_hulls(left_hull, right_hull)
+    top_left = idxL
+    top_right = idxR
 
-def convex_hull(points):
-    points.sort(key=lambda p: (p.x, p.y))
-    return convex_hull_rec(points, 0, len(points) - 1)
+    merging_done = False
+    idxL = sizeL - 1
+    idxR = 0
+    while not merging_done:
+        merging_done = True
+        while compute_cross_product(left_part[idxL], right_part[idxR], right_part[(idxR - 1 + sizeR) % sizeR]) > 0:
+            idxR = (idxR - 1 + sizeR) % sizeR
+        while compute_cross_product(right_part[idxR], left_part[idxL], left_part[(idxL + 1) % sizeL]) < 0:
+            idxL = (idxL + 1) % sizeL
+            merging_done = False
 
-def generate_random_points(size):
-    points = []
+    bottom_left = idxL
+    bottom_right = idxR
+
+    merged_result = []
+    idx = top_left
+    while idx != bottom_left:
+        merged_result.append(left_part[idx])
+        idx = (idx + 1) % sizeL
+    merged_result.append(left_part[bottom_left])
+
+    idx = bottom_right
+    while idx != top_right:
+        merged_result.append(right_part[idx])
+        idx = (idx + 1) % sizeR
+    merged_result.append(right_part[top_right])
+
+    return merged_result
+
+
+# Recursive function to compute the convex hull
+def recursive_convex_hull(coords, start, end):
+    if end - start + 1 <= 2:
+        return coords[start:end + 1]
+
+    midpoint = (start + end) // 2
+    left_hull = recursive_convex_hull(coords, start, midpoint)
+    right_hull = recursive_convex_hull(coords, midpoint + 1, end)
+
+    return combine_hulls(left_hull, right_hull)
+
+
+# Main convex hull function
+def convex_hull_solver(coords_list):
+    coords_list.sort(key=lambda p: (p.x_val, p.y_val))
+    return recursive_convex_hull(coords_list, 0, len(coords_list) - 1)
+
+
+# Generate random coordinates (points) for testing
+def generate_random_coordinates(size):
+    coord_list = []
     for _ in range(size):
-        points.append(Point(random.randint(0, 10000), random.randint(0, 10000)))
-    return points
+        coord_list.append(Coordinate(random.randint(0, 10000), random.randint(0, 10000)))
+    return coord_list
 
-print(f"{'Array Size'}\t{'Theoretical Time (log base 2)'}\t{'Experimental Time (ns)'}")
+
+# Test the algorithm with different input sizes
+print(f"{'Size'}\t{'Estimated Time O(n log n)'}\t{'Actual Time (ns)'}")
 print("=" * 80)
 
-arr = [100, 500, 1000, 5000, 10000, 50000, 100000, 500000, 1000000, 10000000]
-for size in arr:
-    points = generate_random_points(size)
+sizes = [100, 500, 1000, 5000, 10000, 100000, 1000000, 10000000]
+for size in sizes:
+    random_coords = generate_random_coordinates(size)
 
-    start_time = time.time_ns()
-    convex_hull(points)
-    end_time = time.time_ns()
-    experimental_time = end_time - start_time
+    start_time_ns = time.time_ns()
+    convex_hull_solver(random_coords)
+    end_time_ns = time.time_ns()
+    execution_time_ns = end_time_ns - start_time_ns
 
-    n_log_n = size * (math.log(size, 2))
-    theoretical_time = n_log_n
+    estimated_n_log_n = size * math.log2(size)
 
-    print(f"{size}\t{theoretical_time:.2f}\t{experimental_time}")
+    print(f"{size}\t{estimated_n_log_n:.2f}\t{execution_time_ns}")
